@@ -51,6 +51,7 @@ def funWanted(self,msg,user):
     
 def funSaleshelp(self,msg,user):
     """Returns a list of valid commands which can be used"""
+    #beware the doc string look alike below is just a nromal string
     self.pm(user,"""all available commands are as follows:
     !wanted: Returns a list of items people would like
     !want: Add an item you are looking for or would like to buy
