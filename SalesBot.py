@@ -280,9 +280,6 @@ class SalesBot(PyDC):
         self.messageReply(user, msg, True) #replys to a private message
               
     def onPublic(self, user, msg):
-        Chatlog = open('chatlog.txt', 'a')
-        Chatlog.write(user+" *** " + msg + " \n")
-        Chatlog.close()
         self.messageReply(user, msg, False) #responds to a public message       
 
 ##############################################
