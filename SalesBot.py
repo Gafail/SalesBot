@@ -6,6 +6,10 @@ import sqlite3
 import os
 import time
 
+# Python 2.7
+# A bot which connects to a nmdc hub uses an SQLite database to save a list of items people want to sell
+# people can want sell and list an interest in an item
+
 def funForsale(self,msg,user):
     """Lists items currently in the database that are for sale"""
     c = conn.cursor()
