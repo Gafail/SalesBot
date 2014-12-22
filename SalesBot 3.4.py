@@ -1,4 +1,4 @@
-from Pydc import *
+from pydc import *
 import re
 import json
 import urllib
@@ -6,6 +6,9 @@ import sqlite3
 import time
 import os
 
+# Python 3.4
+# A bot which connects to a nmdc hub uses an SQLite database to save a list of items people want to sell
+# people can want sell and list an interest in an item
 
 def funForsale(self,msg,user):
     """Lists items currently in the database that are for sale"""
@@ -112,8 +115,8 @@ def funSold(self,msg,user):
 
 class SalesBot(PyDC):
     
-    address='global.canthub.info'
-    #address='192.168.0.109'
+    #address='global.canthub.info'
+    address='127.0.0.1'
     port=411
     debug=True
     auto_reconnect = True
@@ -183,36 +186,36 @@ class SalesBot(PyDC):
                                                          
     #set cammands to funtions lookup here
     # options[command](<variables here>) -> Funtion for command
-    options = {sold : funSold,
-                notwanted : funNotwanted,
-                wanted : funWanted,
-                want : funWant,
-                saleshelp : funSaleshelp,
-                sell : funSell,
-                forsale : funForsale                
-                }  
+    options = {sold      : funSold,
+               notwanted : funNotwanted,
+               wanted    : funWanted,
+               want      : funWant,
+               saleshelp : funSaleshelp,
+               sell      : funSell,
+               forsale   : funForsale                
+               }   
     
     # private message reply lookup here
     # pm_reply[command] -> private message response
-    pm_reply = {sold : pmsgsold,
-                    notwanted : pmsgnotwanted,
-                    wanted : pmsgwanted,
-                    want : pmsgwant,
-                    saleshelp : pmsgsaleshelp,
-                    sell : pmsgsell,
-                    forsale : pmsgforsale                
-                    }
+    pm_reply = {sold      : pmsgsold,
+                notwanted : pmsgnotwanted,
+                wanted    : pmsgwanted,
+                want      : pmsgwant,
+                saleshelp : pmsgsaleshelp,
+                sell      : pmsgsell,
+                forsale   : pmsgforsale                
+                }
     
     #set public reply message lookup here
     # reply[command] -> public message response
-    reply = {sold : msgsold,
-                        notwanted : msgnotwanted,
-                        wanted : msgwanted,
-                        want : msgwant,
-                        saleshelp : msgwant,
-                        sell : msgsell,
-                        forsale : msgforsale                
-                        }     
+    reply = {sold      : msgsold,
+             notwanted : msgnotwanted,
+             wanted    : msgwanted,
+             want      : msgwant,
+             saleshelp : msgsaleshelp,
+             sell      : msgsell,
+             forsale   : msgforsale                
+             }       
 
     def messageReply(self, user, msg, pm):
         """ if the message needs to be replied to then here is where the
