@@ -117,7 +117,7 @@ def funSold(self,msg,user):
 class SalesBot(PyDC):
     
     #address='global.canthub.info'
-    address='192.168.0.109'
+    address='127.0.0.1'
     port=411
     debug=True
     auto_reconnect = True
