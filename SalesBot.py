@@ -1,4 +1,4 @@
-from Pydc import *
+from pydc27 import *
 import re
 import json
 import urllib
@@ -7,6 +7,7 @@ import os
 import time
 
 # Python 2.7
+# Salesbot V0.3.1
 # A bot which connects to a nmdc hub uses an SQLite database to save a list of items people want to sell
 # people can want sell and list an interest in an item
 
@@ -17,7 +18,7 @@ def funForsale(self,msg,user):
     messages = 0
     for row in c.execute('SELECT * FROM sales ORDER BY ID'):
         
-        ID , USER, ITEM, PRICE = row
+        ID , USER, ITEM, PRICE, INTEREST = row
         if PRICE == "None":
             info += "\n" + "ID:" + str(ID).ljust(4) + " " + str(USER) + ":".ljust(10) + str(ITEM)
         else:
@@ -57,17 +58,18 @@ def funSaleshelp(self,msg,user):
     """Returns a list of valid commands which can be used"""
     #beware the doc string look alike below is just a nromal string
     self.pm(user,"""all available commands are as follows:
-    !wanted: Returns a list of items people would like
-    !want: Add an item you are looking for or would like to buy
-    !notwanted: Remove an item from the wanted list
-    !sell: List an item for sale
-    !forsale: Returns a list of items currently for sale
-    !sold: Mark an item as sold
-    !saleshelp: Ask for this to be sent to you again
+    !sell <Item> <Price>: List an item for sale
+    !forsale            : Returns a list of items currently for sale
+    !want <Item>        : Add an item you are looking for or would like to buy
+    !wanted             : Returns a list of items people would like
+    !notwanted <ID>     : Remove an item from the wanted list
+    !sold <ID>          : Mark an item as sold
+    !interested <ID>    : Shows your interest to the seller by adding your name next to the item
+    !saleshelp          : Ask for this to be sent to you again
     """)   
 
 def funWant(self,msg,user):
-    """Adds an item to the list of wanted items"""
+    """Adds an item to the list of wanted items (!want <Item>)"""
     Item = " "
     c = conn.cursor()
     _,wanting = msg.split("!want")
@@ -77,7 +79,7 @@ def funWant(self,msg,user):
     conn.commit()         
     
 def funNotwanted(self,msg,user):
-    """Removes an item from the wanted list"""
+    """Removes an item from the wanted list (!notwanted <ID>)"""
     c = conn.cursor()
     _,IDsold = msg.split("!notwanted ")
     #delete Row of Data
@@ -87,7 +89,7 @@ def funNotwanted(self,msg,user):
     
     
 def funSell(self,msg,user):
-    """Adds an item to the database of items for sale"""
+    """Adds an item to the database of items for sale (!sell <Item> <Price>)"""
     Item = " "
     Price = " "
     c = conn.cursor()
@@ -98,139 +100,137 @@ def funSell(self,msg,user):
         Item = ssellingwant
     else:
         Item,Price = ssellingwant.rsplit("&#36;",1)
+    interest = "[]"
     # Insert a row of data
-    Newline = user, Item, Price
-    c.execute("INSERT INTO sales(USER, ITEM, PRICE) VALUES (?,?,?)",Newline)      
+    Newline = user, Item, Price, interest
+    c.execute("INSERT INTO sales(USER, ITEM, PRICE, INTEREST) VALUES (?,?,?,?)",Newline)      
     conn.commit()    
 
     
     
 def funSold(self,msg,user):
-    """removes an item for sale from the database"""
+    """removes an item for sale from the database (!Sold <ID>)"""
     c = conn.cursor()
     _,IDsold = msg.split("!sold ")
     #delete Row of Data
     c.execute("Delete FROM sales WHERE ID = ?",(IDsold,))                  
     conn.commit()    
 
+def funInterested(self,msg,user):
+    """Lists that a user is interested in an item being sold and adds their name
+    to a list which only the seller can see"""
+    _,IDsold = msg.split("!sold ")
+    c = conn.cursor()
+    interestList = c.execute('SELECT INTEREST FROM sales WHERE ID = ?',(IDsold,))
+    interestList.append(user)
+    c.execute("INSERT INTO sales(INTEREST) WHERE ID = ? VALUES (?)",(IDsold,interestList))      
+    conn.commit() 
+
  
 class SalesBot(PyDC):
-    
+
+    #Setup PyDC Globals
+
     #address='global.canthub.info'
-    address='192.168.3.100'
+    address='127.0.0.1'
     port=411
-    debug=True
+    debug=False
     auto_reconnect = True
     nick = 'SalesBot'
-    desc='!saleshelp for more information, I am your Sales Bot V0.2.1'
+    desc='!saleshelp for more information, I am your Sales Bot V0.3.1'
     #password='123321'
     
+    class Sales_Responce(object):
+        def __init__(self):
+            self.cmd = ""
+            self.msg_respond = True     #Will respond to public message
+            self.msg_reply = ""
+            self.pmsg_reply = ""
 
-    #list commands here
-    #please note that order matters! this is an index lookup
-    COMMANDS = ('!sold', 
-                '!notwanted',
-                '!wanted',
-                '!want',
-                '!saleshelp',
-                '!sell',
-                '!forsale')
+        def cmd_action(self):
+            pass
+
+        def reply(self,parent,pm,user):
+            if pm:
+                parent.pm(user, self.pmsg_reply)
+            else:
+                if self.msg_respond:
+                    parent.say(self.msg_reply)
+            print "Replied to", user
+            return
+
+    def __init__(self):
+
+        self.COMMANDS = {}
+
+        def add_cmd(name):
+            self.COMMANDS[name.cmd] = name
     
-    #list the public response messages here (index lookup)
-    RESPONCE_MESSAGES = ("That item has now been removed from the List",
-                         "That item has now been removed from the List",
-                         "A list has been sent to you via PM",
-                         "Your request has been added to the list",
-                         "I sent you help via PM",
-                         "Thank you for adding another item to sell",
-                         "A list has been sent to you via PM"
-                         )
-    
-    msgsold, \
-    msgnotwanted, \
-    msgwanted, \
-    msgwant, \
-    msgsaleshelp, \
-    msgsell, \
-    msgforsale =  RESPONCE_MESSAGES 
-    
-    #list items here that you do not want to be posted to public chat
-    NO_RESPONCE = (msgforsale,msgwanted,msgsaleshelp)
-    
-    #list the private response messages here
-    PM_RESPONCE_MESSAGES = ("That item has now been removed from the List",
-                            "That item has now been removed from the List",
-                            "If you have something someone wants add it :)",
-                            "Your request has been added to the list",
-                            "If you are still stuck PM Gafail for help",
-                            "Thank you for adding another item to sell",
-                            "If you wish to buy something PM the user and list your interest with !interested <ID>"
-                            )
-    pmsgsold, \
-    pmsgnotwanted, \
-    pmsgwanted, \
-    pmsgwant, \
-    pmsgsaleshelp, \
-    pmsgsell, \
-    pmsgforsale =  PM_RESPONCE_MESSAGES     
-    
-    #list command shortcuts here
-    #a command shortcut converts shortname into raw command as string
-    sold, \
-    notwanted, \
-    wanted, \
-    want, \
-    saleshelp, \
-    sell, \
-    forsale = COMMANDS
-                                                    
-                                                         
-    #set cammands to funtions lookup here
-    # options[command](<variables here>) -> Funtion for command
-    options = {sold      : funSold,
-               notwanted : funNotwanted,
-               wanted    : funWanted,
-               want      : funWant,
-               saleshelp : funSaleshelp,
-               sell      : funSell,
-               forsale   : funForsale                
-               }  
-    
-    # private message reply lookup here
-    # pm_reply[command] -> private message response
-    pm_reply = {sold      : pmsgsold,
-                notwanted : pmsgnotwanted,
-                wanted    : pmsgwanted,
-                want      : pmsgwant,
-                saleshelp : pmsgsaleshelp,
-                sell      : pmsgsell,
-                forsale   : pmsgforsale                
-                }
-    
-    #set public reply message lookup here
-    # reply[command] -> public message response
-    reply = {sold      : msgsold,
-             notwanted : msgnotwanted,
-             wanted    : msgwanted,
-             want      : msgwant,
-             saleshelp : msgsaleshelp,
-             sell      : msgsell,
-             forsale   : msgforsale                
-             }     
+        sold = self.Sales_Responce()
+        sold.cmd = "!sold"
+        sold.msg_respond = True     
+        sold.msg_reply = "That item has now been removed from the List"
+        sold.pmsg_reply = "That item has now been removed from the List"
+        sold.cmd_action = funSold
+        add_cmd(sold)
+
+        notwanted = self.Sales_Responce()
+        notwanted.cmd = "!notwanted"
+        notwanted.msg_respond = True   
+        notwanted.msg_reply = "That item has now been removed from the List"
+        notwanted.pmsg_reply = "That item has now been removed from the List"
+        notwanted.cmd_action = funNotwanted
+        add_cmd(notwanted)
+
+        wanted = self.Sales_Responce()
+        wanted.cmd = "!wanted"
+        wanted.msg_respond = True     
+        wanted.msg_reply = "A list has been sent to you via PM"
+        wanted.pmsg_reply = "If you have something someone wants add it :)"
+        wanted.cmd_action = funWanted
+        add_cmd(wanted)
+
+        want = self.Sales_Responce()
+        want.cmd = "!want"
+        want.msg_respond = True     
+        want.msg_reply = "Your request has been added to the list"
+        want.pmsg_reply = "Your request has been added to the list"
+        want.cmd_action = funWant
+        add_cmd(want)
+
+        saleshelp = self.Sales_Responce()
+        saleshelp.cmd = "!saleshelp"
+        saleshelp.msg_respond = True     
+        saleshelp.msg_reply = "I sent you help via PM"
+        saleshelp.pmsg_reply = "If you are still stuck PM Gafail for help"
+        saleshelp.cmd_action = funSaleshelp
+        add_cmd(saleshelp)
+
+        sell = self.Sales_Responce()
+        sell.cmd = "!sell"
+        sell.msg_respond = True     
+        sell.msg_reply = "Thank you for adding another item to sell"
+        sell.pmsg_reply = "Thank you for adding another item to sell"
+        sell.cmd_action = funSell
+        add_cmd(sell)
+
+        forsale = self.Sales_Responce()
+        forsale.cmd = "!forsale"
+        forsale.msg_respond = True     
+        forsale.msg_reply = "A list has been sent to you via PM"
+        forsale.pmsg_reply = "If you wish to buy something PM the user and list your interest with !interested <ID>"
+        forsale.cmd_action = funForsale
+        add_cmd(forsale)
+   
 
     def messageReply(self, user, msg, pm):
         """ if the message needs to be replied to then here is where the
         messages are. If pm = true then private message else public message"""
-        
+        #print msg
         cmd = msg.split(' ')[0]
-        if cmd in self.COMMANDS:
-            self.options[cmd](self,msg,user)
-            if pm:
-                self.pm(user, self.pm_reply[cmd])
-            else:
-                if self.reply[cmd] not in self.NO_RESPONCE:
-                    self.say(self.reply[cmd])
-    
+        if cmd in self.COMMANDS.keys():
+            self.COMMANDS[cmd].cmd_action(self,msg,user)
+            self.COMMANDS[cmd].reply(self,pm,user)
     
         output = ''
         respond = False
@@ -256,7 +256,7 @@ class SalesBot(PyDC):
                     
             elif 'anyone' in msg.lower():
                 if 'sell' in msg.lower():
-                    output = ("Please Type !forsale to see what is being sold on CantHub or ad a buy request with !want 'your item here'")        
+                    output = ("Please type !forsale to see what is being sold on CantHub or add a buy request with !want <your item here>")        
                     respond = True                
                 elif 'buy' in msg.lower():
                     output = ("Trying to sell something? Why not list it on SalesBot with !sell 'your item here'")        
@@ -264,7 +264,7 @@ class SalesBot(PyDC):
                     
             elif 'anybody ' in msg.lower():
                 if 'sell' in msg.lower():
-                    output = ("Please Type !forsale to see what is being sold on CantHub or ad a buy request with !want <your item here>")        
+                    output = ("Please type !forsale to see what is being sold on CantHub or add a buy request with !want <your item here>")        
                     respond = True                
                 elif 'buy' in msg.lower():
                     output = ("Trying to sell something? Why not list it on SalesBot with !sell <your item here>")        
@@ -294,9 +294,9 @@ if not os.path.isfile('HubSales.db'):
     conn = sqlite3.connect('HubSales.db')
     c = conn.cursor()
     # Create table
-    c.execute('''CREATE TABLE sales (ID INTEGER PRIMARY KEY, USER, ITEM, PRICE)''')
+    c.execute('''CREATE TABLE sales (ID INTEGER PRIMARY KEY AUTOINCREMENT , USER, ITEM, PRICE, INTEREST)''')
     
-    c.execute('''CREATE TABLE wanting (ID INTEGER PRIMARY KEY, USER, ITEM)''')
+    c.execute('''CREATE TABLE wanting (ID INTEGER PRIMARY KEY AUTOINCREMENT , USER, ITEM)''')
 else:
     conn = sqlite3.connect('HubSales.db')
     c = conn.cursor()    
