@@ -34,6 +34,7 @@ def funForsale(self,msg,user):
     info += "\n"        
     self.pm(user,info)             
     conn.commit()    
+    return True
     
 def funWanted(self,msg,user):
     """Returns a list of items people want"""
@@ -52,7 +53,8 @@ def funWanted(self,msg,user):
             messages = 0
             
     self.pm(user,info)             
-    conn.commit()      
+    conn.commit()  
+    return True    
     
 def funSaleshelp(self,msg,user):
     """Returns a list of valid commands which can be used"""
@@ -66,25 +68,28 @@ def funSaleshelp(self,msg,user):
     !sold <ID>          : Mark an item as sold
     !interested <ID>    : Shows your interest to the seller by adding your name next to the item
     !saleshelp          : Ask for this to be sent to you again
-    """)   
+    """) 
+    return True  
 
 def funWant(self,msg,user):
     """Adds an item to the list of wanted items (!want <Item>)"""
     Item = " "
     c = conn.cursor()
-    _,wanting = msg.split("!want")
+    wanting = msg.split("!want")[1].strip()
     # Insert a row of data
     Newline = user, wanting
     c.execute("INSERT INTO wanting(USER, ITEM) VALUES (?,?)",Newline)      
-    conn.commit()         
+    conn.commit() 
+    return True        
     
 def funNotwanted(self,msg,user):
     """Removes an item from the wanted list (!notwanted <ID>)"""
     c = conn.cursor()
-    _,IDsold = msg.split("!notwanted ")
+    ID = msg.split("!notwanted")[1].strip()
     #delete Row of Data
-    c.execute("Delete FROM wanting WHERE ID = ?",(IDsold,))                  
-    conn.commit()   
+    c.execute("Delete FROM wanting WHERE ID = ?",(ID,))                  
+    conn.commit()  
+    return True 
     
     
     
@@ -93,7 +98,7 @@ def funSell(self,msg,user):
     Item = " "
     Price = " "
     c = conn.cursor()
-    _,ssellingwant = msg.split("!sell")
+    ssellingwant = msg.split("!sell")[1].strip()
     
     if "&#36;" not in msg.lower():
         Price = "None"
@@ -105,26 +110,29 @@ def funSell(self,msg,user):
     Newline = user, Item, Price, interest
     c.execute("INSERT INTO sales(USER, ITEM, PRICE, INTEREST) VALUES (?,?,?,?)",Newline)      
     conn.commit()    
+    return True
 
     
     
 def funSold(self,msg,user):
     """removes an item for sale from the database (!Sold <ID>)"""
     c = conn.cursor()
-    _,IDsold = msg.split("!sold ")
+    ID = msg.split("!sold")[1].strip()
     #delete Row of Data
-    c.execute("Delete FROM sales WHERE ID = ?",(IDsold,))                  
+    c.execute("Delete FROM sales WHERE ID = ?",(ID,))                  
     conn.commit()    
+    return True
 
 def funInterested(self,msg,user):
     """Lists that a user is interested in an item being sold and adds their name
     to a list which only the seller can see"""
-    _,IDsold = msg.split("!sold ")
+    ID = msg.split("!interested")[1].strip()
     c = conn.cursor()
-    interestList = c.execute('SELECT INTEREST FROM sales WHERE ID = ?',(IDsold,))
+    interestList = c.execute('SELECT INTEREST FROM sales WHERE ID = ?',(ID,))
     interestList.append(user)
-    c.execute("INSERT INTO sales(INTEREST) WHERE ID = ? VALUES (?)",(IDsold,interestList))      
+    c.execute("INSERT INTO sales(INTEREST) WHERE ID = ? VALUES (?)",(ID,interestList))      
     conn.commit() 
+    return True
 
  
 class SalesBot(PyDC):
@@ -148,7 +156,7 @@ class SalesBot(PyDC):
             self.pmsg_reply = ""
 
         def cmd_action(self):
-            pass
+            return False #must return true for reply or false for no reply
 
         def reply(self,parent,pm,user):
             if pm:
@@ -184,7 +192,7 @@ class SalesBot(PyDC):
 
         wanted = self.Sales_Responce()
         wanted.cmd = "!wanted"
-        wanted.msg_respond = True     
+        wanted.msg_respond = False     
         wanted.msg_reply = "A list has been sent to you via PM"
         wanted.pmsg_reply = "If you have something someone wants add it :)"
         wanted.cmd_action = funWanted
@@ -200,7 +208,7 @@ class SalesBot(PyDC):
 
         saleshelp = self.Sales_Responce()
         saleshelp.cmd = "!saleshelp"
-        saleshelp.msg_respond = True     
+        saleshelp.msg_respond = False     
         saleshelp.msg_reply = "I sent you help via PM"
         saleshelp.pmsg_reply = "If you are still stuck PM Gafail for help"
         saleshelp.cmd_action = funSaleshelp
@@ -216,7 +224,7 @@ class SalesBot(PyDC):
 
         forsale = self.Sales_Responce()
         forsale.cmd = "!forsale"
-        forsale.msg_respond = True     
+        forsale.msg_respond = False     
         forsale.msg_reply = "A list has been sent to you via PM"
         forsale.pmsg_reply = "If you wish to buy something PM the user and list your interest with !interested <ID>"
         forsale.cmd_action = funForsale
@@ -229,8 +237,8 @@ class SalesBot(PyDC):
         #print msg
         cmd = msg.split(' ')[0]
         if cmd in self.COMMANDS.keys():
-            self.COMMANDS[cmd].cmd_action(self,msg,user)
-            self.COMMANDS[cmd].reply(self,pm,user)
+            if self.COMMANDS[cmd].cmd_action(self,msg,user):
+                self.COMMANDS[cmd].reply(self,pm,user)
     
         output = ''
         respond = False
