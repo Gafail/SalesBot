@@ -15,6 +15,7 @@ def funForsale(self,msg,user):
     """Lists items currently in the database that are for sale and how many users are interested in them"""
     c = conn.cursor()
     info = "Items currently for sale:\n"
+    new_info = ""
     messages = 0
     c.execute('SELECT * FROM sales ORDER BY ID')
     sales_table = c.fetchall()
@@ -23,25 +24,25 @@ def funForsale(self,msg,user):
         ID , USER, ITEM, PRICE = row
         c.execute('SELECT SALES_ID, USER FROM interested WHERE SALES_ID = ? ORDER BY INTERESTED_ID', (ID,))
         item_interest = c.fetchall()
-        #if PRICE == "None":
+
         if user == USER:
-            info += "\n" + format(("ID:" + str(ID)),"<9")+ format((str(USER) + ":"),"<20") + str(ITEM).strip() + "\n" + format("Interested User(s): ",">32")
+            new_info = "\n" + format("ID:" + format(ID,".3g"),"<9")+ format((str(USER) + ":"),"<20") + str(ITEM).strip() + "\n" + format("Interested User(s): ",">32")
             if item_interest != []:
                 for item in item_interest:
                     _,name = item
-                    info += " " + name
+                    new_info += " " + name
             else:
-                info += " None"
+                new_info += " None"
         else:
-            info += "\n" + format(("ID:" + str(ID)),"<9")+ format((str(USER) + ":"),"<20") + format(str(ITEM).strip(),"<200") + "\n" + format("Interested User(s): ",">32") +  str(len(item_interest))
-        #else:
-            #info += "\nID:" + str(ID).ljust(4)  + " " + str(USER) + ":".ljust(10) + str(ITEM).strip() + " $" + str(PRICE)
+            new_info = "\n" + format(("ID:" + str(ID)),"<9")+ format((str(USER) + ":"),"<20") + format(str(ITEM).strip(),"<200") + "\n" + format("Interested User(s): ",">32") +  str(len(item_interest))
+
          
-        if messages < 8:
+        if messages < 8 and (len(info)+len(new_info)) < self.MAXPMLENGTH:
             messages += 1
+            info = info + new_info
         else:
             self.pm(user,info)
-            info = ""
+            info = new_info
             messages = 0
     
     info += "\n"        
@@ -155,6 +156,7 @@ class SalesBot(PyDC):
     nick = 'SalesBot'
     desc='!saleshelp for more information, I am your Sales Bot V0.3.1'
     #password='123321'
+    MAXPMLENGTH = 1000
     
     class Sales_Responce(object):
         """ Must be a child of PyDC. Is a object which stores how to respond to a command"""
