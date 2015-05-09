@@ -26,7 +26,7 @@ def funForsale(self,msg,user):
         item_interest = c.fetchall()
 
         if user == USER:
-            new_info = "\n" + format("ID:" + format(ID,".3g"),"<9")+ format((str(USER) + ":"),"<20") + str(ITEM).strip() + "\n" + format("Interested User(s): ",">32")
+            new_info = "\n" + format("ID:" + str(ID).zfill(3),"<9")+ format((str(USER) + ":"),"<20") + str(ITEM).strip() + "\n" + format("Interested User(s): ",">32")
             if item_interest != []:
                 for item in item_interest:
                     _,name = item
@@ -34,7 +34,7 @@ def funForsale(self,msg,user):
             else:
                 new_info += " None"
         else:
-            new_info = "\n" + format(("ID:" + str(ID)),"<9")+ format((str(USER) + ":"),"<20") + format(str(ITEM).strip(),"<200") + "\n" + format("Interested User(s): ",">32") +  str(len(item_interest))
+            new_info = "\n" + format(("ID:" + str(ID).zfill(3)),"<9")+ format((str(USER) + ":"),"<20") + format(str(ITEM).strip(),"<200") + "\n" + format("Interested User(s): ",">32") +  str(len(item_interest))
 
          
         if messages < 8 and (len(info)+len(new_info)) < self.MAXPMLENGTH:
@@ -46,9 +46,11 @@ def funForsale(self,msg,user):
             messages = 0
     
     info += "\n"        
-    self.pm(user,info)             
+    self.pm(user,info)   
+    self.pm(user,"If you wish to buy something PM the user and list your interest with !interested <ID>")          
     conn.commit()    
-    return True
+    
+    return False
     
 def funWanted(self,msg,user):
     """Returns a list of items people want"""
