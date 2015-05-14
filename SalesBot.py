@@ -7,7 +7,7 @@ import os
 import time
 
 # Python 2.7
-# Salesbot V0.3.1
+# Salesbot V0.3.2
 # A bot which connects to a nmdc hub uses an SQLite database to save a list of items people want to sell
 # people can want sell and list an interest in an item
 
@@ -17,6 +17,7 @@ def funForsale(self,msg,user):
     info = "Items currently for sale:\n"
     new_info = ""
     messages = 0
+    sentmessages = 0
     c.execute('SELECT * FROM sales ORDER BY ID')
     sales_table = c.fetchall()
     for row in sales_table:
@@ -41,13 +42,20 @@ def funForsale(self,msg,user):
             messages += 1
             info = info + new_info
         else:
+            if sentmessages == (self.MAXMESSAGETIMEOUT-2): # and self.authlevel <= 3 : #waiting on pydc2.7 update
+                self.pm(user,"Please wait. more information incoming! (waiting 10sec)")
+                time.sleep(self.MESSAGETIMEOUT)
+                sentmessages = 0
+            sentmessages += 1
+            print sentmessages
             self.pm(user,info)
             info = new_info
             messages = 0
     
     info += "\n"        
     self.pm(user,info)   
-    self.pm(user,"If you wish to buy something PM the user and list your interest with !interested <ID>")          
+    self.pm(user,"If you wish to buy something PM the user and list your interest with !interested <ID>")   
+    print "Replied to", user + " (!forsale)"       
     conn.commit()    
     
     return False
@@ -150,15 +158,16 @@ class SalesBot(PyDC):
 
     #Setup PyDC Globals
 
-    #address='global.canthub.info'
     address='127.0.0.1'
     port=411
     debug=False
     auto_reconnect = True
     nick = 'SalesBot'
-    desc='!saleshelp for more information, I am your Sales Bot V0.3.1'
+    desc='!saleshelp for more information, I am your Sales Bot V0.3.2'
     #password='123321'
     MAXPMLENGTH = 1000
+    MAXMESSAGETIMEOUT = 5
+    MESSAGETIMEOUT = 10    #canthub 5 in 10sec unless i am bot
     
     class Sales_Responce(object):
         """ Must be a child of PyDC. Is a object which stores how to respond to a command"""
